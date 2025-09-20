@@ -2,3 +2,7 @@
 .idea/
 .env
 123.py
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
