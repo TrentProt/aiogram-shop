@@ -1,6 +1,8 @@
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from app.core.models import Product
+
 
 async def choose_qty(product_id: int):
     keyboard = InlineKeyboardBuilder()
@@ -30,3 +32,35 @@ async def choose_qty(product_id: int):
         )
     )
     return keyboard.adjust(3).as_markup()
+
+
+async def check_cart(cart_items: [Product, int]):
+    keyboard = InlineKeyboardBuilder()
+
+    for product, qty in cart_items:
+        keyboard.row(
+            InlineKeyboardButton(
+                text=f'{product.name}',
+                callback_data=f'product'
+            ),
+            InlineKeyboardButton(
+                text=f'Кол-во: {qty}',
+                callback_data=f'product'
+            ),
+            InlineKeyboardButton(
+                text=f'Цена: {product.price * qty}',
+                callback_data=f'product'
+            )
+        )
+        keyboard.row(
+            InlineKeyboardButton(
+                text=f'Удалить товар',
+                callback_data=f'delete_product_{product.id}'
+            ),
+            InlineKeyboardButton(
+                text=f'Изменить кол-во',
+                callback_data=f'update_product_{product.id}'
+            )
+        )
+
+    return keyboard.as_markup()

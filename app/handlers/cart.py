@@ -1,10 +1,11 @@
 import re
 
 from aiogram import Router, F
-from aiogram.types import CallbackQuery, InputMediaPhoto
+from aiogram.types import CallbackQuery, InputMediaPhoto, Message
 from sqlalchemy import select
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 import app.keyboards.cart as kb
 import app.keyboards.catalog as kb_cat
@@ -92,3 +93,25 @@ async def cq_add_qty_pr_in_cart(callback: CallbackQuery,
         'Выберите категорию',
         reply_markup=await kb_cat.inline_category(session)
     )
+
+
+@router.message(F.text == 'Корзина')
+async def get_cart(message: Message,
+                   session: AsyncSession):
+    stmt = select(Product, Cart.qty).join(
+        Cart, Cart.product_id == Product.id
+    ).where(
+        Cart.user_id == message.from_user.id
+    )
+    result = await session.execute(stmt)
+    cart_items = result.all()
+
+    if not cart_items:
+        await message.answer('Ваша корзина пуста')
+        return
+
+    await message.answer(
+        'Ваша корзина',
+        reply_markup=await kb.check_cart(cart_items)
+    )
+
