@@ -7,6 +7,7 @@ from app.core.db import db_helper
 from app.core.middleware import DBMiddleware
 from app.handlers.catalog import router as catalog_router
 from app.handlers.main import router as main_router
+from app.handlers.cart import router as cart_router
 
 bot = Bot(token=settings.api.key)
 dp = Dispatcher()
@@ -19,6 +20,7 @@ async def main():
     await db_helper.create_database()
     dp.include_router(catalog_router)
     dp.include_router(main_router)
+    dp.include_router(cart_router)
     await dp.start_polling(bot)
 
 

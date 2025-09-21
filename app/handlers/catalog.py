@@ -88,5 +88,8 @@ async def cq_get_product(callback: CallbackQuery,
 
     await callback.message.edit_media(
         media=media,
-        reply_markup=await kb.inside_product(int(product.category_id))
+        reply_markup=await kb.inside_product(
+            int(product.category_id),
+            int(product.id)
+        )
     )

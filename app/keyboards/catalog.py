@@ -90,13 +90,14 @@ async def inline_items_category(
     return keyboard.as_markup()
 
 
-async def inside_product(category_id: int):
+async def inside_product(category_id: int,
+                         product_id: int):
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(
         InlineKeyboardButton(
             text='Добавить в корзину',
-            callback_data='add_to_cart'
+            callback_data=f'add_to_cart_{product_id}'
         )
     )
     keyboard.row(
