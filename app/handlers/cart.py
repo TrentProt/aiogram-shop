@@ -2,7 +2,7 @@ import re
 
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, InputMediaPhoto, Message
-from sqlalchemy import select, delete, and_
+from sqlalchemy import select, delete, and_, update
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -12,24 +12,40 @@ import app.keyboards.catalog as kb_cat
 
 from app.core.models import Product, Cart
 
+
 router = Router()
 
 
 @router.callback_query(F.data.startswith('add_to_cart_'))
-async def cq_add_to_cart(callback: CallbackQuery):
-    await callback.answer('')
+async def cq_add_to_cart(callback: CallbackQuery,
+                         session: AsyncSession):
 
     product_id = callback.data.split('cart_')[1]
-    await callback.message.edit_media(
-        media=InputMediaPhoto(
-            media=callback.message.photo[-1].file_id,
-            caption='Выберите количество товара'
-        ),
-        reply_markup=await kb.choose_qty(int(product_id))
+
+    stmt = select(Cart).where(
+        and_(
+            Cart.product_id == product_id,
+            Cart.user_id == callback.from_user.id
+        )
     )
+    result = (await session.execute(stmt)).scalar_one_or_none()
+
+    if result:
+        await callback.answer('Товар уже есть в корзине')
+
+    else:
+        await callback.answer('')
+        await callback.message.edit_media(
+            media=InputMediaPhoto(
+                media=callback.message.photo[-1].file_id,
+                caption='Выберите количество товара'
+            ),
+            reply_markup=await kb.choose_qty(int(product_id))
+        )
 
 
 @router.callback_query(F.data.startswith('write_qty_'))
+@router.callback_query(F.data.startswith('update_qty_'))
 async def cq_add_qty(callback: CallbackQuery,
                      session: AsyncSession):
     await callback.answer('')
@@ -53,8 +69,11 @@ async def cq_add_qty(callback: CallbackQuery,
                 caption=f'Добавить в корзину ({new_qty}) шт.\n\n'
                         f'Стоимость: {product.price * new_qty}'
             ),
-            reply_markup=await kb.choose_qty(int(product_id))
-        )
+            reply_markup=await kb.choose_qty(
+                int(product_id),
+                is_edit=True if 'update_' in callback.data
+                else False)
+            )
 
     else:
         await callback.message.edit_media(
@@ -63,21 +82,25 @@ async def cq_add_qty(callback: CallbackQuery,
                 caption=f'Добавить в корзину ({qty}) шт.\n\n'
                         f'Стоимость: {product.price * int(qty)}'
             ),
-            reply_markup=await kb.choose_qty(int(product_id))
+            reply_markup=await kb.choose_qty(
+                int(product_id),
+                is_edit=True if 'update_' in callback.data
+                else False
+            )
         )
 
 
 @router.callback_query(F.data.startswith('add_qty_in_cart_product_'))
 async def cq_add_qty_pr_in_cart(callback: CallbackQuery,
                                 session: AsyncSession):
+    product_id = int(callback.data.split('product_')[1])
+
     await callback.answer('Товар добавлен в корзину!')
 
     user_id = callback.from_user.id
 
     caption_w_qty = callback.message.caption
     qty = int(re.search(r'\((\d+)\)', caption_w_qty).group(1))
-
-    product_id = int(callback.data.split('product_')[1])
 
     await callback.message.delete()
 
@@ -117,8 +140,8 @@ async def get_cart(message: Message,
 
 
 @router.callback_query(F.data.startswith('delete_'))
-async def delete_product(callback: CallbackQuery,
-                         session: AsyncSession):
+async def delete_product_in_cart(callback: CallbackQuery,
+                                 session: AsyncSession):
     product_id = callback.data.split('product_')[1]
     stmt = delete(Cart).where(
         and_(
@@ -145,3 +168,60 @@ async def delete_product(callback: CallbackQuery,
             'Ваша корзина',
             reply_markup=await kb.check_cart(cart_items)
         )
+
+
+@router.callback_query(F.data.startswith('edit_'))
+async def edit_qty_in_cart(callback: CallbackQuery,
+                           session: AsyncSession):
+    product_id = callback.data.split('product_')[1]
+    stmt = select(Cart).options(joinedload(Cart.products)).where(
+        and_(
+            Cart.product_id == product_id,
+            Cart.user_id == callback.from_user.id
+        )
+    )
+    cart_item = (await session.execute(stmt)).scalar_one_or_none()
+
+    if cart_item:
+        await callback.message.edit_media(
+            media=InputMediaPhoto(
+                media=str(cart_item.products.photo),
+                caption=f'Изменить количество товара\n'
+                        f'Текущее количество: {cart_item.qty}'
+            ),
+            reply_markup=await kb.choose_qty(int(product_id), is_edit=True)
+        )
+
+
+@router.callback_query(F.data.startswith('replace_qty_'))
+async def replace_qty(callback: CallbackQuery,
+                      session: AsyncSession):
+    caption_w_qty = callback.message.caption
+    new_qty = int(re.search(r'\((\d+)\)', caption_w_qty).group(1))
+    data = callback.data.split('product_')
+    product_id = int(data[1])
+
+    stmt = update(Cart).where(
+        and_(
+            Cart.product_id == product_id,
+            Cart.user_id == callback.from_user.id
+        )
+    ).values(qty=new_qty)
+
+    await session.execute(stmt)
+    await session.commit()
+
+    await callback.answer(f'Количество изменено на {new_qty}')
+
+    stmt = select(Product, Cart.qty).join(
+        Cart, Cart.product_id == Product.id
+    ).where(Cart.user_id == callback.from_user.id)
+    result = await session.execute(stmt)
+    cart_items = result.all()
+
+    await callback.message.delete()
+
+    await callback.message.answer(
+        'Ваша корзина',
+        reply_markup=await kb.check_cart(cart_items)
+    )

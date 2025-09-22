@@ -4,13 +4,14 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from app.core.models import Product
 
 
-async def choose_qty(product_id: int):
+async def choose_qty(product_id: int, is_edit: bool = False):
     keyboard = InlineKeyboardBuilder()
     for i in range(1,10):
         keyboard.add(
             InlineKeyboardButton(
                 text=str(i),
-                callback_data=f'write_qty_{i}_product_{product_id}'
+                callback_data=f'update_qty_{i}_product_{product_id}' if is_edit
+                else f'write_qty_{i}_product_{product_id}'
             )
         )
     keyboard.add(
@@ -22,13 +23,15 @@ async def choose_qty(product_id: int):
     keyboard.add(
         InlineKeyboardButton(
             text='0',
-            callback_data=f'write_qty_0_product_{product_id}'
+            callback_data=f'update_qty_0_{product_id}' if is_edit
+            else f'write_qty_0_product_{product_id}'
         )
     )
     keyboard.add(
         InlineKeyboardButton(
             text='ГОТОВО',
-            callback_data=f'add_qty_in_cart_product_{product_id}'
+            callback_data=f'replace_qty_in_cart_product_{product_id}' if is_edit
+            else f'add_qty_in_cart_product_{product_id}'
         )
     )
     return keyboard.adjust(3).as_markup()
@@ -59,7 +62,7 @@ async def check_cart(cart_items: [Product, int]):
             ),
             InlineKeyboardButton(
                 text=f'Изменить кол-во',
-                callback_data=f'update_product_{product.id}'
+                callback_data=f'edit_product_{product.id}'
             )
         )
 
