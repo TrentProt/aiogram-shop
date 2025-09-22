@@ -14,9 +14,15 @@ async def check_admin(
     )
     result = (await session.execute(stmt)).scalar_one_or_none()
 
-    if not result:
-        is_admin = False
-        return is_admin
+    is_admin = False
 
-    is_admin = (result.role == Role.admin)
+    if not result:
+        new_user = User(
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+        )
+        session.add(new_user)
+        await session.commit()
+    else:
+        is_admin = (result.role == Role.admin)
     return is_admin
