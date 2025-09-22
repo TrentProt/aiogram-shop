@@ -225,3 +225,8 @@ async def replace_qty(callback: CallbackQuery,
         'Ваша корзина',
         reply_markup=await kb.check_cart(cart_items)
     )
+
+
+@router.callback_query(F.data == 'product')
+async def plug(callback: CallbackQuery):
+    await callback.answer('')

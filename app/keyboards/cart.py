@@ -40,6 +40,8 @@ async def choose_qty(product_id: int, is_edit: bool = False):
 async def check_cart(cart_items: [Product, int]):
     keyboard = InlineKeyboardBuilder()
 
+    total_value = 0
+
     for product, qty in cart_items:
         keyboard.row(
             InlineKeyboardButton(
@@ -65,6 +67,19 @@ async def check_cart(cart_items: [Product, int]):
                 callback_data=f'edit_product_{product.id}'
             )
         )
+        total_value += product.price * qty
+    keyboard.row(
+        InlineKeyboardButton(
+            text=f'Всего: {total_value}',
+            callback_data=f'product'
+        )
+    )
+    keyboard.row(
+        InlineKeyboardButton(
+            text=f'Оформить заказ',
+            callback_data=f'create_order'
+        )
+    )
 
     return keyboard.as_markup()
 
