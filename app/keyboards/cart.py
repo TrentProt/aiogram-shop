@@ -64,3 +64,5 @@ async def check_cart(cart_items: [Product, int]):
         )
 
     return keyboard.as_markup()
+
+

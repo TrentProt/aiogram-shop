@@ -2,7 +2,7 @@ import re
 
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, InputMediaPhoto, Message
-from sqlalchemy import select
+from sqlalchemy import select, delete, and_
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -115,3 +115,33 @@ async def get_cart(message: Message,
         reply_markup=await kb.check_cart(cart_items)
     )
 
+
+@router.callback_query(F.data.startswith('delete_'))
+async def delete_product(callback: CallbackQuery,
+                         session: AsyncSession):
+    product_id = callback.data.split('product_')[1]
+    stmt = delete(Cart).where(
+        and_(
+            Cart.product_id == product_id,
+            Cart.user_id == callback.from_user.id
+        )
+    )
+    await session.execute(stmt)
+    await session.commit()
+
+    await callback.answer('Товар удален из корзины')
+
+    stmt = select(Product, Cart.qty).join(
+        Cart, Cart.product_id == Product.id
+    ).where(Cart.user_id == callback.from_user.id)
+    result = await session.execute(stmt)
+    cart_items = result.all()
+
+    if not cart_items:
+        await callback.message.edit_text('Ваша корзина пуста')
+
+    else:
+        await callback.message.edit_text(
+            'Ваша корзина',
+            reply_markup=await kb.check_cart(cart_items)
+        )
