@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 from app.core.models import Cart, Order, OrderItem
 import app.keyboards.main as kb_main
 import app.keyboards.order as kb
+from app.utils.utils import check_admin
 
 router = Router()
 
@@ -132,7 +133,9 @@ async def process_address(
 
     await session.commit()
 
+    is_admin = await check_admin(message, session)
+
     await message.answer(
         'Заказ создан',
-        reply_markup=kb_main.main
+        reply_markup=await kb_main.main_kb(is_admin)
     )

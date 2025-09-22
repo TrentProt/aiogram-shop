@@ -9,6 +9,8 @@ from app.handlers.catalog import router as catalog_router
 from app.handlers.main import router as main_router
 from app.handlers.cart import router as cart_router
 from app.handlers.order import router as order_router
+from app.handlers.admin import router as admin_router
+
 
 bot = Bot(token=settings.api.key)
 dp = Dispatcher()
@@ -23,6 +25,7 @@ async def main():
     dp.include_router(main_router)
     dp.include_router(cart_router)
     dp.include_router(order_router)
+    dp.include_router(admin_router)
     await dp.start_polling(bot)
 
 
