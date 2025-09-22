@@ -1,3 +1,5 @@
+import enum
+
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -8,12 +10,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.models import Cart, Order, OrderItem
+import app.keyboards.main as kb_main
+import app.keyboards.order as kb
 
 router = Router()
+
+
+DELIVERYTYPE = {
+    'courier': 'Курьером',
+    'pickup': 'Самовывоз',
+    'express': 'Экспресс'
+}
+
 
 class CreateOrder(StatesGroup):
     name = State()
     number = State()
+    delivery_type = State()
     address = State()
 
 
@@ -43,13 +56,26 @@ async def process_number(
         state: FSMContext
 ):
     if not message.text.replace('+', '').replace(' ', '').isdigit():
-        await message.answer("Пожалуйста, введите корректный номер телефона (только цифры и символ +):")
+        await message.answer('Введите номер телефона')
         return
 
     await state.update_data(number=message.text)
     await state.set_state(CreateOrder.address)
-    await message.answer("🏠 Теперь введите ваш адрес доставки:")
+    await message.answer(
+        'Выберите способ доставки:',
+        reply_markup=kb.choose_deltype
+    )
 
+
+@router.callback_query(F.data.startswith('delivery_'))
+async def process_devtype(
+        callback: CallbackQuery,
+        state: FSMContext
+):
+    await callback.answer('')
+    delivery_type = callback.data.replace('delivery_', '')
+    await state.update_data(delivery_type=DELIVERYTYPE[delivery_type])
+    await callback.message.answer("Введите адрес:")
 
 @router.message(CreateOrder.address)
 async def process_address(
@@ -70,12 +96,11 @@ async def process_address(
     cart_items = (await session.execute(stmt)).scalars().all()
 
     if not cart_items:
-        await message.answer("❌ Ваша корзина пуста!")
+        await message.answer('Ваша корзина пуста!')
         await state.clear()
         return
 
     total_amount = 0
-    order_details = []
     order_items = []
 
     for item in cart_items:
@@ -92,6 +117,7 @@ async def process_address(
         customer_name=data['name'],
         customer_phone=data['number'],
         customer_address=data['address'],
+        delivery_type=data['delivery_type'],
         status='created',
         total_amount=total_amount
     )
@@ -106,4 +132,7 @@ async def process_address(
 
     await session.commit()
 
-    await message.answer('Заказ создан')
+    await message.answer(
+        'Заказ создан',
+        reply_markup=kb_main.main
+    )

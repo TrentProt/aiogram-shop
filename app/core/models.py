@@ -97,6 +97,7 @@ class Order(Base):
     customer_name: Mapped[str] = mapped_column(String(30))
     customer_phone: Mapped[str] = mapped_column(String(30))
     customer_address: Mapped[str] = mapped_column(String(100))
+    delivery_type: Mapped[str] = mapped_column(String(30))
     status: Mapped[Status] = mapped_column(Enum(Status), default=Status.created)
     total_amount: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(default=func.now())
@@ -109,8 +110,8 @@ class OrderItem(Base):
     __tablename__ = 'order_items'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    order_id: Mapped[int] = mapped_column(
-        Integer,
+    order_id: Mapped[str] = mapped_column(
+        String(36),
         ForeignKey('orders.uuid', ondelete='CASCADE'),
         index=True
     )
