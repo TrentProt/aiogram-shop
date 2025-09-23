@@ -19,7 +19,7 @@
 
 ```bash
 # Клонируйте репозиторий
-git clone <your-repo-url>
+git clone https://github.com/TrentProt/aiogram-shop
 cd telegram-bot
 
 # Создайте виртуальное окружение
