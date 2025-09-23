@@ -55,3 +55,56 @@ APP_CONFIG__ADMINS__TG_IDS=[ТГ ID]
 # Запуск бота
 python main.py
 ```
+
+### Тестирование
+
+Запуск тестов:
+```bash
+#Все тесты
+pytest
+```
+
+### Схема бд
+```bash
+┌─────────────────┐         ┌─────────────────┐
+│     users       │         │   categories    │
+├─────────────────┤         ├─────────────────┤
+│ telegram_id (PK)│         │ id (PK)         │
+│ username        │         │ name            │
+│ role            │         └─────────────────┘
+└─────────────────┘                   │
+         │                            │
+         │ 1:N                        │ 1:N
+         │                            │
+         ▼                            ▼
+┌─────────────────┐         ┌─────────────────┐
+│      cart       │         │    products     │
+├─────────────────┤         ├─────────────────┤
+│ id (PK)         │         │ id (PK)         │
+│ user_id (FK)    │         │ name            │
+│ product_id (FK) │◄────┐   │ price           │
+│ qty             │     │   │ description     │
+└─────────────────┘     │   │ photo           │
+                        │   │ category_id (FK)│
+         │              │   └─────────────────┘
+         │ 1:N          │           │
+         │              │           │ 1:N
+         ▼              │           ▼
+┌─────────────────┐     │   ┌─────────────────┐
+│     orders      │     │   │   order_items   │
+├─────────────────┤     │   ├─────────────────┤
+│ uuid (PK)       │     │   │ id (PK)         │
+│ user_id (FK)    │     └───│ product_id (FK) │
+│ customer_name   │         │ order_id (FK)   │
+│ customer_phone  │         │ qty             │
+│ customer_address│         └─────────────────┘
+│ delivery_type   │                 ▲
+│ status          │                 │
+│ total_amount    │                 │ 1:N
+│ created_at      │                 │
+└─────────────────┘                 │
+                  1:N               │
+                            ┌─────────────────┐
+                            │     orders      │
+                            └─────────────────┘
+```
