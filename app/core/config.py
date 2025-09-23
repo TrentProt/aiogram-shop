@@ -1,3 +1,5 @@
+from typing import List
+
 from pydantic import AnyUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -12,6 +14,9 @@ class DataBaseConfig(BaseSettings):
     pool_size: int = 50
     max_overflow: int = 10
 
+class AdminConfig(BaseSettings):
+    tg_ids: List[int] = []
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         case_sensitive=False,
@@ -22,6 +27,7 @@ class Settings(BaseSettings):
     )
     api: APIKeyTG
     db: DataBaseConfig
+    admins: AdminConfig
 
 
 settings = Settings()
