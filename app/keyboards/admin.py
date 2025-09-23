@@ -23,6 +23,3 @@ async def edit_status_keyboard(order_uuid: str):
             )
         )
     return keyboard.adjust(2).as_markup()
-
-
-

@@ -124,4 +124,3 @@ class OrderItem(Base):
 
     order: Mapped['Order'] = relationship(back_populates='order_items')
     product: Mapped['Product'] = relationship(back_populates='order_items')
-
